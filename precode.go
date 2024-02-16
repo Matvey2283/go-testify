@@ -49,18 +49,36 @@ func mainHandle(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(answer))
 }
 
-func TestMainHandlerWhenCountMoreThanTotal(t *testing.T) {
-	totalCount := 4
-	req := httptest.NewRequest("GET", "/cafe?count=9&city=moscow", nil)
-
+func TestMainHandlerSuccess(t *testing.T) {
+	req := httptest.NewRequest("GET", "/cafe?count=3&city=moscow", nil)
 	responseRecorder := httptest.NewRecorder()
+
 	handler := http.HandlerFunc(mainHandle)
 	handler.ServeHTTP(responseRecorder, req)
 
-	statusCode := responseRecorder.Code
-	require.NotEqual(t, 0, statusCode)
-	require.Equal(t, http.StatusOK, statusCode)
+	assert.Equal(t, http.StatusOK, responseRecorder.Code)
+	require.NotEmpty(t, responseRecorder.Body.String())
+}
 
-	responseBody := strings.Split(responseRecorder.Body.String(), ",")
-	assert.Equal(t, totalCount, len(responseBody))
+func TestMainHandlerWrongCity(t *testing.T) {
+	req := httptest.NewRequest("GET", "/cafe?count=3&city=unknownCity", nil)
+	responseRecorder := httptest.NewRecorder()
+
+	handler := http.HandlerFunc(mainHandle)
+	handler.ServeHTTP(responseRecorder, req)
+
+	assert.Equal(t, http.StatusBadRequest, responseRecorder.Code)
+	assert.Equal(t, "wrong city value", responseRecorder.Body.String())
+}
+
+func TestMainHandlerCountMoreThanTotal(t *testing.T) {
+	totalCount := 4
+	req := httptest.NewRequest("GET", "/cafe?count=5&city=moscow", nil)
+	responseRecorder := httptest.NewRecorder()
+
+	handler := http.HandlerFunc(mainHandle)
+	handler.ServeHTTP(responseRecorder, req)
+
+	assert.Equal(t, http.StatusOK, responseRecorder.Code)
+	assert.Equal(t, "Мир кофе,Сладкоежка,Кофе и завтраки,Сытый студент", responseRecorder.Body.String())
 }
